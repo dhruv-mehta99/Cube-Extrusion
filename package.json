@@ -1,0 +1,25 @@
+{
+  "name": "snaptrude-assignment",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dhruv-mehta99/Cube-Extrusion.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dhruv-mehta99/Cube-Extrusion/issues"
+  },
+  "homepage": "https://github.com/dhruv-mehta99/Cube-Extrusion#readme",
+  "dependencies": {
+    "babylonjs": "^6.5.0"
+  },
+  "devDependencies": {
+    "parcel": "^2.8.3"
+  }
+}
