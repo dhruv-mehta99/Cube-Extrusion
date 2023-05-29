@@ -2,7 +2,7 @@ import * as BABYLON from 'babylonjs';
 
 
 let engine, scene, camera, canvas, axesLinesViewer, light, selectedFaceMaterial, faceToExtrude, boxMaterial
-let meshArr = [];
+let meshArr = new Set();;
 let meshHeight = 1, meshWidth = 1, meshDepth = 1;
 let clickedOnce = false;
 const boxName = "theBox";
@@ -64,15 +64,13 @@ function init() {
 }
 
 function draw() {
-
   //array of mesh objects that are present in the current scene
   //dispose all the objects
-  meshArr.forEach(e => {
-    e.dispose();
-    e.dispose();
-    scene?.removeMesh(e);
+  meshArr.forEach(mesh => {
+    mesh.dispose();
+    scene?.removeMesh(mesh);
   });
-  meshArr = [];
+  meshArr = new Set();
 
   //create a box with custom heigth, width and depth
   const box = BABYLON.MeshBuilder.CreateBox(boxName, { width: meshWidth, height: meshHeight, depth: meshDepth }, scene);
@@ -81,11 +79,11 @@ function draw() {
   // Set the position of the box so that one vertex is at the origin
   box.position = new BABYLON.Vector3(meshWidth / 2, meshHeight / 2, meshDepth / 2);
 
-  meshArr.push(box)
+  meshArr.add(box)
 
   //add all elements back to scene
-  meshArr.forEach(e => {
-    scene?.addMesh(e);
+  meshArr.forEach(mesh => {
+    scene?.addMesh(mesh);
   });
 }
 
@@ -111,7 +109,12 @@ function onClick() {
     //check if the pickresult was able to pick any of the meshes
     //this is required because if the pickresult did not pick any mesh then it wont be able to provide pickedPoint
     if (pickResult?.hit) {
-      const box = meshArr.find((mesh) => mesh.name === boxName);
+      let box
+      meshArr.forEach((mesh) => {
+        if (mesh.name === boxName) {
+          box = mesh;
+        }
+      });
       let faceNormal = box.getFacetNormal(faceToExtrude);
       if (faceNormal._x != 0) {
         meshWidth = pickResult.pickedPoint._x
@@ -153,17 +156,9 @@ function highlightFace(mesh, faceId) {
 }
 
 function animate(mesh, faceToExtrude) {
-  var clonedMesh = mesh.clone("animationMesh")
-
-  //add mesh to meshArr so that it can be cleaned up when draw() function is called
-  meshArr.push(clonedMesh)
-
-  //add cloned mesh for animation to scene
-  scene.addMesh(clonedMesh);
-
   // initilize the box with current size of the box
   let tempMeshWidth = meshWidth, tempMeshHeight = meshHeight, tempMeshDepth = meshDepth;
-  
+
   const faceNormal = mesh.getFacetNormal(faceToExtrude);
 
   // Animate the extrusion
@@ -172,21 +167,24 @@ function animate(mesh, faceToExtrude) {
     //getting latest mouse positon
     const pickResult = scene?.pick(scene.pointerX, scene.pointerY);
 
-    //rather then creating new mesh objects we can scale one single object because the initial mesh = the box
-    //check the direction of extrusions using using the normal vector of the selected face
+    //check the direction of extrusions using using the normal vector of the selected face and update height, width or depth accordingly
     if (faceNormal._x != 0) {
       tempMeshWidth = pickResult.pickedPoint._x
-      clonedMesh.scaling._x = tempMeshWidth
     } else if (faceNormal._y != 0) {
       tempMeshHeight = pickResult.pickedPoint._y
-      clonedMesh.scaling._y = tempMeshHeight
     } else if (faceNormal._z != 0) {
       tempMeshDepth = pickResult.pickedPoint._z
-      clonedMesh.scaling._z = tempMeshDepth
     }
+    const clonedMesh = BABYLON.MeshBuilder.CreateBox("animationMesh", { width: tempMeshWidth, height: tempMeshHeight, depth: tempMeshDepth }, scene);
 
     clonedMesh.position = new BABYLON.Vector3(tempMeshWidth / 2, tempMeshHeight / 2, tempMeshDepth / 2);
     clonedMesh.material = selectedFaceMaterial;
+
+    //this timeout removes the clonedmesh from the scene with 100ms delay to keep memory and cpu utilization optimized
+    setTimeout(() => {
+      clonedMesh.dispose()
+      scene.removeMesh(clonedMesh)
+    }, 100);
 
     //finish animatin on 2nd click
     if (clickedOnce) {
@@ -202,7 +200,7 @@ function reset() {
   meshHeight = 1;
   meshWidth = 1;
 
-  draw()
+  draw();
 }
 function onWindowResize() {
   engine.resize();
